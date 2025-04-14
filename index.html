@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Horas Trabalhadas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .turno { margin-bottom: 10px; }
+    .registro {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calculadora de Horas Trabalhadas</h1>
+
+  <form id="form">
+    <label>Nome do Funcionário:
+      <input type="text" id="nome" required />
+    </label><br><br>
+
+    <label>Dia do Trabalho (1 a 31):
+      <input type="number" id="dia" min="1" max="31" required />
+    </label><br><br>
+
+    <div id="turnos-container"></div>
+
+    <button type="button" onclick="adicionarTurno()">+ Adicionar Turno</button><br><br>
+    <button type="submit">Registrar Horas</button>
+  </form>
+
+  <button onclick="limparLista()">🗑️ Limpar Lista</button>
+
+  <h2>Registros:</h2>
+  <div id="lista-registros"></div>
+
+  <h2>Relatório:</h2>
+  <div id="relatorio"></div>
+
+  <script>
+    const container = document.getElementById('turnos-container');
+    const listaRegistros = document.getElementById('lista-registros');
+    const relatorio = document.getElementById('relatorio');
+
+    const MES_FIXO = 4;  // Abril
+    const ANO_FIXO = 2025;
+
+    let nomeFuncionario = '';  // Armazena o nome do funcionário
+    let diaAtual = 1;          // Armazena o dia atual para incrementar
+
+    // Ao carregar a página, recupera o nome do funcionário e o contador de dias
+    window.onload = () => {
+      const nomeSalvo = localStorage.getItem('nomeFuncionario');
+      if (nomeSalvo) {
+        nomeFuncionario = nomeSalvo;
+        document.getElementById('nome').value = nomeFuncionario;
+      }
+
+      // Recupera o contador de dias
+      const diaSalvo = localStorage.getItem('diaAtual');
+      if (diaSalvo) {
+        diaAtual = parseInt(diaSalvo, 10);
+      }
+      document.getElementById('dia').value = diaAtual;
+    };
+
+    // Função para registrar o nome e atualizar o nome no localStorage
+    document.getElementById('nome').addEventListener('input', (e) => {
+      nomeFuncionario = e.target.value;
+      localStorage.setItem('nomeFuncionario', nomeFuncionario);
+    });
+
+    // Adiciona um turno de trabalho
+    function adicionarTurno() {
+      const div = document.createElement('div');
+      div.className = 'turno';
+      div.innerHTML = `
+        <label>Entrada:
+          <input type="time" class="entrada" required />
+        </label>
+        <label>Saída:
+          <input type="time" class="saida" required />
+        </label>
+        <button type="button" onclick="removerTurno(this)">Remover</button>
+      `;
+      container.appendChild(div);
+    }
+
+    // Remove um turno da lista
+    function removerTurno(botao) {
+      botao.parentElement.remove();
+    }
+
+    // Calcula as horas entre a entrada e a saída
+    function calcularHoras(entrada, saida) {
+      if (!entrada || !saida) return 0;
+      const [h1, m1] = entrada.split(':').map(Number);
+      const [h2, m2] = saida.split(':').map(Number);
+      let horas = h2 - h1;
+      let minutos = m2 - m1;
+      if (minutos < 0) {
+        minutos += 60;
+        horas -= 1;
+      }
+      return horas + minutos / 60;
+    }
+
+    // Salva os registros no localStorage
+    function salvarRegistros(registros) {
+      localStorage.setItem('registrosHoras', JSON.stringify(registros));
+    }
+
+    // Carrega os registros do localStorage
+    function carregarRegistros() {
+      const registrosSalvos = JSON.parse(localStorage.getItem('registrosHoras')) || [];
+      registrosSalvos.forEach(adicionarRegistroNaLista);
+      atualizarRelatorio(registrosSalvos);
+    }
+
+    // Adiciona um registro na lista
+    function adicionarRegistroNaLista(registroObj) {
+      const div = document.createElement('div');
+      div.className = 'registro';
+      div.innerHTML = `<strong>${registroObj.nome}</strong> trabalhou <strong>${registroObj.horas.toFixed(2)}</strong> hora(s) no dia <strong>${registroObj.data}</strong>.`;
+      listaRegistros.appendChild(div);
+    }
+
+    // Atualiza o relatório com o total de horas
+    function atualizarRelatorio(registros) {
+      const total = registros.reduce((soma, r) => soma + r.horas, 0);
+      relatorio.innerHTML = `<p><strong>Total de horas no mês:</strong> ${total.toFixed(2)} hora(s)</p>`;
+    }
+
+    // Limpa os registros
+    function limparLista() {
+      if (confirm("Deseja realmente apagar todos os registros?")) {
+        localStorage.removeItem('registrosHoras');
+        listaRegistros.innerHTML = '';
+        relatorio.innerHTML = '';
+      }
+    }
+
+    // Evento de envio do formulário
+    document.getElementById('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      if (!nomeFuncionario) {
+        alert("Por favor, insira o nome do funcionário.");
+        return;
+      }
+
+      const dia = document.getElementById('dia').value;
+
+      // Calcula as horas
+      const entradas = document.querySelectorAll('.entrada');
+      const saidas = document.querySelectorAll('.saida');
+      let totalHoras = 0;
+
+      for (let i = 0; i < entradas.length; i++) {
+        totalHoras += calcularHoras(entradas[i].value, saidas[i].value);
+      }
+
+      const dataCompleta = new Date(ANO_FIXO, MES_FIXO - 1, dia);
+      const dataFormatada = dataCompleta.toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      });
+
+      const registroObj = {
+        nome: nomeFuncionario,
+        horas: totalHoras,
+        data: dataFormatada
+      };
+
+      adicionarRegistroNaLista(registroObj);
+
+      // Salva no localStorage
+      const registrosAtuais = JSON.parse(localStorage.getItem('registrosHoras')) || [];
+      registrosAtuais.push(registroObj);
+      salvarRegistros(registrosAtuais);
+
+      // Atualiza o relatório
+      atualizarRelatorio(registrosAtuais);
+
+      // Incrementa o dia e atualiza no campo de dia
+      diaAtual++;
+      document.getElementById('dia').value = diaAtual;
+      localStorage.setItem('diaAtual', diaAtual);  // Salva o próximo dia no localStorage
+
+      // Limpa os turnos e mantém o nome
+      document.getElementById('form').reset();
+      container.innerHTML = '';
+      adicionarTurno();
+
+      // Recarrega a página
+      location.reload();
+    });
+
+    // Inicializa com um turno
+    adicionarTurno();
+    carregarRegistros();
+  </script>
+</body>
+</html>

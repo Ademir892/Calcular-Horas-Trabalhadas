@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <title>Horas Trabalhadas</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .turno { margin-bottom: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .turno {
+      margin-bottom: 10px;
+    }
+
     .registro {
       border: 1px solid #ccc;
       padding: 10px;
@@ -15,6 +23,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>Calculadora de Horas Trabalhadas</h1>
 
@@ -83,6 +92,12 @@
       mesAtual = parseInt(e.target.value, 10);
       localStorage.setItem('mesAtual', mesAtual);
     });
+
+    document.getElementById('dia').addEventListener('input', (e) => {
+      diaAtual = parseInt(e.target.value, 10);
+      localStorage.setItem('diaAtual', diaAtual);
+    });
+
 
     function adicionarTurno() {
       const div = document.createElement('div');
@@ -198,4 +213,5 @@
     carregarRegistros();
   </script>
 </body>
+
 </html>
